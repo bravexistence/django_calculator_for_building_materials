@@ -22,9 +22,11 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ${{ secrets.SERVER_PROJECT_PATH }}
-            git pull origin main
-            source .venv/bin/activate
+            git pull https://github.com/bravexistence/django_calculator_for_building_materials.git main
+            export PATH="$HOME/.local/bin:$PATH"
+            poetry config virtualenvs.in-project true
             poetry install --no-root
+            source .venv/bin/activate
             poetry run python manage.py migrate
             poetry run python manage.py collectstatic --noinput
-            sudo systemctl restart gunicorn
+            sudo /bin/systemctl restart gunicorn
