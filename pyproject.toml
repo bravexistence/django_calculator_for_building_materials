@@ -1,0 +1,37 @@
+[project]
+name = "django-calculator"
+version = "0.1.0"
+description = "Django project for parsing product prices and generating quotes"
+authors = [
+  { name = "Vitaliy Morozov", email = "vitaly.morozov97@gmail.com" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11,<4"
+
+dependencies = [
+  "django>=5.0",
+  "requests>=2.31.0",
+  "beautifulsoup4>=4.12.3",
+  "openpyxl>=3.1.2",
+  "reportlab>=4.1.0",
+  "lxml>=5.1.0",
+  "django-grappelli",
+  "python-dotenv (>=1.1.0,<2.0.0)",
+  "gunicorn (>=23.0.0,<24.0.0)",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black>=24.3.0",
+  "isort>=5.13.2",
+  "ipython>=8.22.0",
+  "django-debug-toolbar>=4.3.0"
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false

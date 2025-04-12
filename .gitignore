@@ -1,0 +1,8 @@
+*.pyc
+__pycache__/
+builder_parser/.env
+*.sqlite3
+*.log
+*DS_Store
+venv/
+builder_parser/.env.example

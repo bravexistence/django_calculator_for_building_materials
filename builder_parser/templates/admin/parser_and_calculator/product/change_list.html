@@ -1,0 +1,87 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools %}
+  {% if custom_buttons %}
+    <style>
+      .custom-object-tools {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+      }
+      .custom-object-tools .button {
+        white-space: nowrap;
+        padding: 6px 12px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .custom-object-tools .button.disabled {
+        background-color: #ccc;
+        pointer-events: none;
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    </style>
+
+    <div class="custom-object-tools">
+      <a
+        class="button {% if is_updating %}disabled{% endif %}"
+        href="{% if not is_updating %}update_all_prices/{% else %}#{% endif %}"
+      >
+        🔁 Обновить всё
+      </a>
+      <a
+        id="update-selected-btn"
+        class="button {% if is_updating %}disabled{% endif %}"
+        href="#"
+        onclick="updateSelectedPrices()"
+      >
+        ✅ Обновить выделенные
+      </a>
+    </div>
+
+    <script>
+    function updateSelectedPrices() {
+      {% if is_updating %}
+        return;  // Блокируем функцию при обновлении
+      {% endif %}
+
+      const checkboxes = document.querySelectorAll('input.action-select');
+      const selectedIds = [];
+      checkboxes.forEach(chk => {
+        if (chk.checked) {
+          selectedIds.push(chk.value);
+        }
+      });
+      if (selectedIds.length === 0) {
+        alert("Не выбраны товары!");
+        return;
+      }
+      window.location.href = "update_selected_prices/?ids=" + selectedIds.join(",");
+    }
+    </script>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}
+
+{% block content %}
+  {% if is_updating %}
+    <style>
+      .price-update-message {
+        background-color: #e6f0ff;
+        border: 1px solid #b3d1ff;
+        padding: 12px 16px;
+        margin: 10px 0 20px;
+        border-radius: 8px;
+        font-size: 15px;
+        color: #003366;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+    </style>
+    <div class="price-update-message">
+      🔄 Цены обновляются. Пожалуйста, перезагрузите страницу через пару минут!
+    </div>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}
