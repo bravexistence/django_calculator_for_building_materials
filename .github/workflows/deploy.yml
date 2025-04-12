@@ -21,12 +21,15 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ${{ secrets.SERVER_PROJECT_PATH }}//builder_parser
+            cd ${{ secrets.SERVER_PROJECT_PATH }}/builder_parser
+            sudo systemctl stop gunicorn
+            git reset --hard HEAD
             git pull https://github.com/bravexistence/django_calculator_for_building_materials.git main
             export PATH="$HOME/.local/bin:$PATH"
             poetry config virtualenvs.in-project true
             poetry install --no-root
-            source .venv/bin/activate
             poetry run python manage.py migrate
             poetry run python manage.py collectstatic --noinput
-            sudo /bin/systemctl restart gunicorn
+            sudo systemctl daemon-reload
+            sudo systemctl start gunicorn
+            sudo systemctl status gunicorn || exit 1

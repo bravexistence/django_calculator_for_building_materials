@@ -6,3 +6,4 @@ builder_parser/.env
 *DS_Store
 venv/
 builder_parser/.env.example
+/staticfiles/
