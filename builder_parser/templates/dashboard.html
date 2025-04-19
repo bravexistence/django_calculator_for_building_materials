@@ -1,0 +1,35 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Дашборд квот</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+</head>
+<body>
+  <div class="container">
+
+    <h2>Клиенты</h2>
+
+    <form method="get" style="margin-bottom: 1rem;">
+      <input type="text" name="q" placeholder="Поиск клиента..." value="{{ request.GET.q }}">
+      <button type="submit">Найти</button>
+    </form>
+
+    {% if quotes %}
+      <ul>
+        {% for quote in quotes %}
+          <li>
+            <a href="{% url 'quote_detail' quote_id=quote.id %}">
+                {{ quote.client_name }} — {{ quote.created_at|date:"Y-m-d H:i" }} — {{ quote.materials|join:", " }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Нет подходящих расчётов</p>
+    {% endif %}
+
+    <p style="margin-top: 2rem;"><a href="{% url 'logout' %}">Выйти</a></p>
+  </div>
+</body>
+</html>

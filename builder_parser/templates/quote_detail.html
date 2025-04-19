@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>КП {{ quote.client_name }}</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+</head>
+<body>
+<div class="container">
+  <h2>КП для {{ quote.client_name }}</h2>
+  <p><strong>Дата:</strong> {{ quote.created_at|date:"Y‑m‑d H:i" }}</p>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {{ form.non_field_errors }}
+
+    <fieldset>
+      <legend>Материалы</legend>
+      {{ form.materials }}
+    </fieldset>
+
+    <!-- размеры подкладок -->
+    <div id="pvh-fields" {% if "пвх" not in quote.materials %}style="display:none"{% endif %}>
+      {{ form.width_pvh.label_tag }} {{ form.width_pvh }} м <br>
+      {{ form.height_pvh.label_tag }} {{ form.height_pvh }} м
+    </div>
+
+    <div id="alyuk-fields" {% if "алюк" not in quote.materials %}style="display:none"{% endif %}>
+      {{ form.width_alyuk.label_tag }} {{ form.width_alyuk }} м <br>
+      {{ form.height_alyuk.label_tag }} {{ form.height_alyuk }} м
+    </div>
+
+    <h3>Блоки</h3>
+
+    {{ formset.management_form }}
+
+    <table id="blocks-table">
+      <thead>
+        <tr><th>Размер</th><th>Кол‑во</th><th>Удалить</th></tr>
+      </thead>
+      <tbody>
+        {% for f in formset %}
+          <tr>
+            {{ f.id }}
+            <td>
+              {{ f.letter_size.errors }}{{ f.letter_size }}
+            </td>
+            <td>
+              {{ f.letter_count.errors }}{{ f.letter_count }}
+            </td>
+            <td>
+              {% if f.instance.pk %}{{ f.DELETE }}{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Шаблон пустой формы для JS -->
+    <template id="empty-form-template">
+      <tr>
+        {{ formset.empty_form.id }}
+        <td>__letter_size__</td>
+        <td>__letter_count__</td>
+        <td></td>
+      </tr>
+    </template>
+    <button type="submit">💾 Сохранить</button>
+  </form>
+
+  <hr>
+
+  <h3>Итог</h3>
+<p><strong>Клиент:</strong> {{ quote.client_name }}</p>
+<p><strong>Дата создания:</strong> {{ quote.created_at|date:"Y-m-d H:i" }}</p>
+
+<p><strong>Всего букв:</strong> {{ quote.total_letters }}</p>
+<p><strong>Кол-во диодов:</strong> {{ quote.total_diodes }}</p>
+<p><strong>Кол-во клея:</strong> {{ quote.total_glue }}</p>
+<p><strong>Акрил м²:</strong> {{ quote.total_acrylic }}</p>
+<p><strong>ПВХ м²:</strong> {{ quote.total_pvc }}</p>
+<p><strong>Кол-во полос:</strong> {{ quote.total_stripes }}</p>
+<p><strong>Оракал м²:</strong> {{ quote.total_oracal_m2 }}</p>
+<p><strong>Провода м.п.:</strong> {{ quote.total_wire_m }}</p>
+<p><strong>Мощность трансформатора (Вт):</strong> {{ quote.total_power_watt }}</p>
+<p><strong>Листов:</strong> {{ quote.sheets }}</p>
+<p><strong>Профиль ШТ:</strong> {{ quote.profile }}</p>
+<p><strong>Силикон:</strong> {{ quote.silicone }}</p>
+<p><strong>Оракал:</strong> {{ quote.oracal }}</p>
+<p><strong>Задники:</strong> {{ quote.total_back }}</p>
+<p><strong>Листов на лицевые:</strong> {{ quote.face_sheets }}</p>
+<p><strong>Листов на полосы:</strong> {{ quote.stripe_sheets }}</p>
+<p><strong>П/м оракал 1 метр ширина:</strong> {{ quote.oracal_pm_1m }}</p>
+<p><strong>П/м оракал 1.2 метра ширина:</strong> {{ quote.oracal_pm_1_2m }}</p>
+
+{% if "пвх" in quote.materials %}
+  <p><strong>Ширина ПВХ (м):</strong> {{ quote.width_pvh }}</p>
+  <p><strong>Высота ПВХ (м):</strong> {{ quote.height_pvh }}</p>
+  <p><strong>Площадь ПВХ:</strong> {{ quote.area_pvh }}</p>
+{% endif %}
+
+{% if "алюк" in quote.materials %}
+  <p><strong>Ширина Алюкобонда (м):</strong> {{ quote.width_alyuk }}</p>
+  <p><strong>Высота Алюкобонда (м):</strong> {{ quote.height_alyuk }}</p>
+  <p><strong>Площадь Алюкобонда:</strong> {{ quote.area_alyuk }}</p>
+{% endif %}
+
+<p><strong>Площадь вывески:</strong> {{ quote.area }} м²</p>
+
+  <p style="margin-top:2rem;"><a href="{% url 'dashboard' %}">← Назад</a></p>
+</div>
+
+<script>
+  // показ/скрытие полей подкладки
+  const materialsInputs = document.querySelectorAll('input[name="materials"]');
+  const pvhBlock  = document.getElementById('pvh-fields');
+  const alyukBlock = document.getElementById('alyuk-fields');
+
+  materialsInputs.forEach(i => i.addEventListener('change', () => {
+    pvhBlock.style.display  = document.querySelector('input[value="пвх"]').checked  ? '' : 'none';
+    alyukBlock.style.display = document.querySelector('input[value="алюк"]').checked ? '' : 'none';
+  }));
+
+  // динамическое добавление строк блока
+  const addBtn      = document.getElementById('add-block');
+  const tableBody   = document.querySelector('#blocks-table tbody');
+  const tmpl        = document.getElementById('empty-form-template').content;
+  const totalInput  = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
+
+  addBtn.addEventListener('click', () => {
+    const formIdx = parseInt(totalInput.value, 10);
+    const clone   = document.importNode(tmpl, true);
+
+    // заменяем __prefix__ на индекс формы
+    clone.innerHTML = clone.innerHTML
+      .replace(/__prefix__/g, formIdx)
+      .replace('__letter_size__', '<select name="{{ formset.prefix }}-' + formIdx + '-letter_size">' +
+                                   '{{ formset.empty_form.letter_size.field.choices|safe }}' + '</select>')
+      .replace('__letter_count__', '<input type="number" name="{{ formset.prefix }}-' + formIdx + '-letter_count" min="1">');
+
+    tableBody.appendChild(clone);
+    totalInput.value = formIdx + 1;
+  });
+</script>
+</body>
+</html>

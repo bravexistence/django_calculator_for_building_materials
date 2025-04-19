@@ -30,6 +30,7 @@ jobs:
             poetry install --no-root
             poetry run python manage.py migrate
             poetry run python manage.py collectstatic --noinput
+            redis-cli -n 1 flushdb
             sudo systemctl daemon-reload
             sudo systemctl start gunicorn
             sudo systemctl status gunicorn || exit 1

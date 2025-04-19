@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.urls import path
 from django.shortcuts import redirect
 from django.contrib import admin, messages
-from .models import Product
+from .models import Product, Quote, SignBlock
 from .parser import ORMProductParser
 
 
@@ -103,3 +103,23 @@ class ProductAdmin(admin.ModelAdmin):
             f"Запущено обновление цен для {len(ids_list)} выбранных товаров (в фоне)."
         )
         return redirect("..")
+
+class SignBlockInline(admin.TabularInline):
+    model = SignBlock
+    extra = 1
+    readonly_fields = [
+        "diodes", "glue", "acrylic", "pvc", "stripes", "oracal_m2",
+        "wire_m", "power_watt"
+    ]
+
+
+@admin.register(Quote)
+class QuoteAdmin(admin.ModelAdmin):
+    list_display = ["client_name", "created_at", "total_letters"]
+    inlines = [SignBlockInline]
+    readonly_fields = ["total_letters", "total_diodes", "total_glue", "total_acrylic",
+                       "total_pvc", "total_stripes", "total_oracal_m2",
+                       "total_wire_m", "total_power_watt", "sheets",
+                       "profile", "silicone", "oracal", "total_back", "area",
+                       "face_sheets", "stripe_sheets",
+                        "oracal_pm_1m", "oracal_pm_1_2m",]

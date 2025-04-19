@@ -16,6 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from parser_and_calculator.views import (
+    login_view, logout_view,
+    dashboard_view, quote_detail_view,)
 
 admin.site.site_header = "Калькулятор и расчет материалов"
 admin.site.site_title = "Django"
@@ -24,4 +27,9 @@ admin.site.index_title = "Навигация по разделам"
 urlpatterns = [
     path('grappelli/', include('grappelli.urls')),
     path("admin/", admin.site.urls),
+    path("", login_view, name="login"),
+    path("logout/", logout_view, name="logout"),
+    path("dashboard/", dashboard_view, name="dashboard"),
+    path("dashboard/quote/<int:quote_id>/", quote_detail_view, name="quote_detail"),
 ]
+
