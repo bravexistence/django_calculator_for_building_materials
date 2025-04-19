@@ -1,4 +1,5 @@
 import threading
+from contextlib import contextmanager
 from django.core.cache import cache
 from django.urls import path
 from django.shortcuts import redirect
@@ -6,16 +7,13 @@ from django.contrib import admin, messages
 from .models import Product
 from .parser import ORMProductParser
 
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    """
-    Admin class for Product, providing:
-    - two top buttons: "Обновить всё" and "Обновить выделенные"
-    - only "Удалить выбранные" in the dropdown (actions)
-    """
     list_display = ["name", "price", "add_margin", "final_price", "url"]
     readonly_fields = ["final_price"]
-    actions = ["delete_selected"]  # только удаление в выпадающем списке
+    actions = ["delete_selected"]
+    LOCK_KEY = "product_update_in_progress"
 
     def get_urls(self):
         urls = super().get_urls()
@@ -40,25 +38,42 @@ class ProductAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context=extra_context)
 
     def is_updating(self):
-        return cache.get("product_update_in_progress", False)
+        return cache.get(self.LOCK_KEY, False)
 
     def set_updating(self, status: bool):
-        cache.set("product_update_in_progress", status, timeout=3600)  # 1 час максимум
+        if status:
+            cache.set(self.LOCK_KEY, True, timeout=None)
+        else:
+            cache.delete(self.LOCK_KEY)
+
+    @contextmanager
+    def _lock(self, ttl=None):
+        acquired = cache.add(self.LOCK_KEY, True, timeout=ttl)
+        try:
+            yield acquired
+        finally:
+            if not acquired:
+                pass
 
     def update_all_prices(self, request):
-        self.set_updating(True)
+        with self._lock() as acquired:
+            if not acquired:
+                self.message_user(request, "Обновление уже запущено.", level=messages.WARNING)
+                return redirect("..")
 
-        def run_parser():
-            try:
-                parser = ORMProductParser()
-                queryset = Product.objects.all()
-                parser.parse_queryset_and_save(queryset)
-            finally:
-                self.set_updating(False)
+            self.set_updating(True)
 
-        threading.Thread(target=run_parser).start()
-        self.message_user(request, "Запущено обновление цен для всех товаров.")
-        return redirect("..")
+            def run_parser():
+                try:
+                    parser = ORMProductParser()
+                    queryset = Product.objects.all()
+                    parser.parse_queryset_and_save(queryset)
+                finally:
+                    self.set_updating(False)
+
+            threading.Thread(target=run_parser).start()
+            self.message_user(request, "Запущено обновление цен для всех товаров.")
+            return redirect("..")
 
     def update_selected_prices(self, request):
         ids_str = request.GET.get("ids")
@@ -67,7 +82,12 @@ class ProductAdmin(admin.ModelAdmin):
             return redirect("..")
 
         ids_list = [int(pk) for pk in ids_str.split(",") if pk.isdigit()]
-        self.set_updating(True)  # <--- Добавлено
+
+        if self.is_updating():
+            self.message_user(request, "Обновление уже запущено.", level=messages.WARNING)
+            return redirect("..")
+
+        self.set_updating(True)
 
         def run_parser():
             try:
@@ -75,7 +95,7 @@ class ProductAdmin(admin.ModelAdmin):
                 queryset = Product.objects.filter(pk__in=ids_list)
                 parser.parse_queryset_and_save(queryset)
             finally:
-                self.set_updating(False)  # <--- Добавлено
+                self.set_updating(False)
 
         threading.Thread(target=run_parser).start()
         self.message_user(
