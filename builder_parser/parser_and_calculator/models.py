@@ -1,6 +1,7 @@
 from django.db import models
 import math
 from multiselectfield import MultiSelectField
+from decimal import Decimal
 
 class Product(models.Model):
     name = models.CharField(max_length=255)
@@ -10,10 +11,16 @@ class Product(models.Model):
     final_price = models.FloatField(null=True, blank=True, editable=False, verbose_name="Итоговая цена")
 
     def save(self, *args, **kwargs):
+        if self.pk:
+            orig = Product.objects.get(pk=self.pk)
+            if self.name != orig.name:
+                raise ValueError("Редактирование 'name' запрещено!")
+
         if self.price is not None:
             self.final_price = round(self.price * 1.2, 2) if self.add_margin else self.price
         else:
             self.final_price = None
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -40,7 +47,9 @@ class Quote(models.Model):
     height_alyuk = models.FloatField("Высота Алюкобонда (м)", blank=True, null=True)
     area_alyuk = models.FloatField("Площадь Алюкобонда", blank=True, null=True, editable=False)
 
-
+    special_technique = models.FloatField("Специальная техника (минимальный выезд 3 часа)", blank=True, null=True)
+    ultrafiolet_base = models.FloatField("УФ печать подложка (1 или 0)", blank=True, null=True)
+    ultrafiolet_letters_print = models.FloatField("УФ печать букв", blank=True, null=True)
 
     total_letters = models.PositiveIntegerField("Всего букв", editable=False, default=0)
     total_diodes = models.FloatField("Кол-во диодов", blank=True, null=True, editable=False)
@@ -108,6 +117,9 @@ class Quote(models.Model):
 
 
 class SignBlock(models.Model):
+    """
+    Model of different types of sign blocks, including different types of letters size and its amount
+    """
     FORMULAS = {
         "15x15": {"diodes": 6, "glue": 0.25, "acrylic": 0.03, "pvc": 0.03, "stripes": 0.79, "oracal_k": 0.125,
                   "wire": 0.5, "watt_per_diode": 0.5},
@@ -228,3 +240,43 @@ class SignBlock(models.Model):
         self.oracal_m2 = round(self.stripes * f["oracal_k"], 2)
         self.wire_m = round(D * f["wire"], 2)
         self.power_watt = round(self.diodes * f["watt_per_diode"], 2)
+
+
+SIGN_TYPES = [
+    ("pseudo_pvc", "Псевдообъем ПВХ 8мм"),
+    ("pseudo_pvc_acrylic", "Псевдообъем 8мм + акрил 3мм"),
+    ("pseudo_15_30mm", "Псевдообъем 15-30мм крашенный"),
+    ("volume_nonsvet", "Объемная несветовая вывеска"),
+    ("light_face", "Световое лицо"),
+    ("3d_letters", "3D буквы"),
+    ("light_acrylic_20mm", "Световая из акрила 20мм"),
+    ("backlight_contour", "Контражур подсветка"),
+    ("steel_letters", "Буквы из нержавейки"),
+    ("steel_letters_light", "Буквы из нержавейки световые"),
+]
+
+class Variant(models.Model):
+    quote = models.ForeignKey(Quote, related_name="variants", on_delete=models.CASCADE)
+    type_code = models.CharField(max_length=30, choices=SIGN_TYPES)
+    use_in_offer = models.BooleanField(default=True)
+    margin_pct = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("quote", "type_code")
+
+class VariantItem(models.Model):
+    variant = models.ForeignKey(Variant, related_name="items", on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.SET_NULL)
+    name = models.CharField(max_length=255)
+    qty = models.DecimalField(max_digits=10, decimal_places=3)
+    unit = models.CharField(max_length=10, default="шт")
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
+
+    def save(self, *a, **kw):
+        self.unit_price = self.unit_price or (self.product.final_price if self.product else 0)
+        self.subtotal   = round(self.qty * self.unit_price, 2)
+        super().save(*a, **kw)
+
+

@@ -10,9 +10,9 @@ body {
   justify-content: center;
 }
 
-.container {
-  width: 100%;
-  max-width: 500px;
+.quote-container {
+  max-width: 1400px !important;
+  width: 95vw !important;
   padding: 1.5rem;
   background: white;
   border-radius: 8px;
@@ -76,3 +76,6 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+.container.flex {display:flex; gap:1rem;}
+.container .overflow-y-auto {overflow-y:auto;}
