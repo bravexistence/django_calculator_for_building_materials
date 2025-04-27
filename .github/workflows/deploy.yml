@@ -21,15 +21,18 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ${{ secrets.SERVER_PROJECT_PATH }}/builder_parser
-            sudo systemctl stop gunicorn
-            git pull --no-edit -s recursive -X theirs https://github.com/bravexistence/django_calculator_for_building_materials.git main
-            export PATH="$HOME/.local/bin:$PATH"
-            poetry config virtualenvs.in-project true
-            poetry install --no-root
-            poetry run python manage.py migrate
-            poetry run python manage.py collectstatic --noinput
-            redis-cli -n 1 flushdb
-            sudo systemctl daemon-reload
-            sudo systemctl start gunicorn
-            sudo systemctl status gunicorn || exit 1
+            cd ${{ secrets.SERVER_PROJECT_PATH }}
+            pwd
+            ls -la
+            echo "=== git remote -v ==="
+            git remote -v || echo "NO GIT REMOTE"
+            echo "=== git branch ==="
+            git branch || echo "NO BRANCH"
+            echo "=== git status ==="
+            git status || echo "NO STATUS"
+            echo "=== git config --list ==="
+            git config --list || echo "NO CONFIG"
+            echo "=== check .git/config ==="
+            cat .git/config || echo "NO .git/config FILE"
+            echo "=== check ssh to github ==="
+            ssh -T git@github.com || echo "SSH to github FAILED"
