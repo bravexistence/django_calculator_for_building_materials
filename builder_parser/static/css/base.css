@@ -1,17 +1,30 @@
+/* Chrome, Safari, Edge, Opera */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+
 body {
   font-family: "Segoe UI", Tahoma, sans-serif;
   background-color: #f9fafb;
   color: #333;
   margin: 0;
   padding: 0;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .quote-container {
-  max-width: 1400px !important;
+  max-width: 1920px !important;
   width: 95vw !important;
   padding: 1.5rem;
   background: white;
@@ -79,3 +92,57 @@ a:hover {
 
 .container.flex {display:flex; gap:1rem;}
 .container .overflow-y-auto {overflow-y:auto;}
+
+
+/* -------- Preview КП (Правая колонка) -------- */
+.variant-box {
+  border: 1px solid #bbb;
+  border-radius: 6px;
+}
+
+.variant-summary {
+  display: block;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  position: relative;
+  font-weight: bold;
+}
+
+.variant-summary::marker {
+  font-size: 16px;
+  color: #666;
+}
+
+.variant-total {
+  float: right;
+  color: #333;
+  font-weight: bold;
+}
+
+.variant-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid #666;
+  font-size: 13px;
+  margin-top: 0.5rem;
+  /* убери margin-left */
+}
+
+.variant-table td {
+  padding: 4px 6px;
+  font-size: 12.5px;
+}
+
+.variant-table td:first-child {
+  padding-left: 50px;
+}
+
+.variant-table tr:not(:last-child) td {
+  border-bottom: 1px solid #666;
+}
+
+input[name$="-DELETE"] {
+  display: none;
+}
+

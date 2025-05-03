@@ -1,0 +1,92 @@
+{% load dict_extras %}  <!-- если используешь кастомный фильтр get_item -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Коммерческое предложение</title>
+  <style>
+    body {
+      font-family: DejaVu Sans, sans-serif;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin-top: 30px;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+
+    th, td {
+      border: 1px solid #444;
+      padding: 5px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #eee;
+    }
+
+    .subtotal {
+      text-align: right;
+      font-weight: bold;
+    }
+
+    .block {
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Коммерческое предложение</h1>
+
+  <p><strong>Клиент:</strong> {{ quote.client_name }}</p>
+  <p><strong>Дата:</strong> {{ quote.created_at|date:"Y-m-d H:i" }}</p>
+
+  <h2>Варианты вывесок</h2>
+
+  {% for v in quote.variants.all %}
+    {% if v.use_in_offer %}
+      <div class="block">
+        <h3>{{ sign_types|get_item:v.type_code }} — {{ v.subtotal }} ₸</h3>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Название</th>
+              <th>Количество</th>
+              <th>Сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in v.items.all %}
+              <tr>
+                <td>{{ it.name }}</td>
+                <td>{{ it.qty }} {{ it.unit }}</td>
+                <td>{{ it.subtotal }} ₸</td>
+              </tr>
+            {% endfor %}
+            <tr>
+              <td colspan="2" class="subtotal">Итого:</td>
+              <td class="subtotal">{{ v.subtotal }} ₸</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endfor %}
+
+</body>
+</html>

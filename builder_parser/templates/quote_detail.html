@@ -7,7 +7,6 @@
   <title>КП {{ quote.client_name }}</title>
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
   <style>
-    /* минимальные утилиты прямо здесь */
     .flex{display:flex;gap:1rem}
     .grow{flex:1 1 0}
     .basis-1\/2{flex-basis:50%}
@@ -24,10 +23,11 @@
 </head>
 <body>
 
-<div class="quote-container flex">
+<div class="quote-container flex w-full gap-4">
 
   <!-- 1. Левая колонка --------------------------------------------------->
-  <div class="grow basis-1/2 pe-6 overflow-y-auto max-h-85">
+  <div class="grow basis-1/4 pe-6 overflow-y-auto max-h-85">
+  <p style="margin-top:2rem;"><a href="{% url 'dashboard' %}">← 🏠 К списку КП</a></p>
     <h2>КП для {{ quote.client_name }}</h2>
     <p><strong>Дата:</strong> {{ quote.created_at|date:"Y-m-d H:i" }}</p>
 
@@ -38,6 +38,17 @@
       <fieldset>
         <legend>Материалы</legend>
         {{ form.materials }}
+            <legend>Доп. параметры</legend>
+              <p>
+                {{ form.special_technique.label_tag }} {{ form.special_technique }} ч
+              </p>
+              <p>
+                {{ form.ultrafiolet_base.label_tag }} {{ form.ultrafiolet_base }}
+              </p>
+              <p>
+                {{ form.ultrafiolet_letters_print.label_tag }} {{ form.ultrafiolet_letters_print }}
+              </p>
+
       </fieldset>
 
       <!-- размеры подкладок -->
@@ -61,20 +72,25 @@
               {{ f.id }}
               <td>{{ f.letter_size }}</td>
               <td>{{ f.letter_count }}</td>
-              <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>
-            </tr>
+              <td>
+                  {% if f.instance.pk %}
+                    {{ f.DELETE }}
+                      <button type="button" class="btn btn-delete">🗑</button>
+                  {% endif %}
+                </td>
           {% endfor %}
         </tbody>
       </table>
+    <button type="button" id="add-block" class="btn mt-2">➕ Добавить блок</button>
 
       <template id="empty-form-template">
-        <tr>
-          {{ formset.empty_form.id }}
-          <td>__letter_size__</td>
-          <td>__letter_count__</td>
-          <td></td>
-        </tr>
-      </template>
+          <tr>
+            {{ formset.empty_form.id }}
+            <td>{{ formset.empty_form.letter_size }}</td>
+            <td>{{ formset.empty_form.letter_count }}</td>
+            <td><button type="button" class="btn btn-delete">🗑</button></td>
+          </tr>
+        </template>
 
       <button type="submit" class="btn">💾 Сохранить</button>
     </form>
@@ -115,54 +131,88 @@
     {% endif %}
     <p><strong>Площадь вывески:</strong> {{ quote.area }} м²</p>
 
-    <p style="margin-top:2rem;"><a href="{% url 'dashboard' %}">← Назад</a></p>
+
   </div>
 
-  <!-- 2. Средняя колонка ------------------------------------------------->
-  <aside class="basis-1/4 pe-6">
-    <h3>Типы вывесок</h3>
-    <form method="post" action="{% url 'set_variants' quote.id %}">
-      {% csrf_token %}
-      {% for code, label in sign_types.items %}
-        {% with v=quote.variants|get_item:code %}
-          <label class="block mb-2">
-            <input type="checkbox" name="use_{{ code }}"
-                   {% if v and v.use_in_offer %}checked{% endif %}>
-            {{ label }}
-          </label>
-          <div class="ms-6 mb-3 text-sm">
-            Наценка:
-            <input type="number" name="margin_{{ code }}" min="0" max="300"
-                   value="{{ v.margin_pct|default_if_none:'0' }}"> %
-          </div>
-        {% endwith %}
-      {% endfor %}
-      <button class="btn" type="submit">💾 Сохранить варианты</button>
-    </form>
-  </aside>
+    <!-- 2. Средняя колонка ------------------------------------------------->
+    <aside class="basis-1/4 pe-6 overflow-y-auto max-h-85">
+      <h3>Типы вывесок</h3>
+            {% if messages %}
+          {% for m in messages %}
+            <div style="color:red; margin-bottom:10px;">{{ m }}</div>
+          {% endfor %}
+        {% endif %}
+        <div class="flex gap-2">
+          <button type="button" class="btn text-xs" style="height:30px"
+                  onclick="setAllVariants(true)">Выделить все</button>
+          <button type="button" class="btn text-xs" style="height:30px"
+                  onclick="setAllVariants(false)">Снять все выделения</button>
+        </div>
 
-  <!-- 3. Правая колонка -------------------------------------------------->
-  <aside class="basis-1/4 overflow-y-auto max-h-85">
-    <h3>Предпросмотр КП</h3>
-    {% for v in variants %}
-      {% if v.use_in_offer %}
-        <details class="mb-4">
-          <summary class="cursor-pointer">
-            {{ sign_types|get_item:v.type_code }}
-          </summary>
-          <table class="text-sm">
-            {% for it in v.items.all %}
-              <tr>
-                <td>{{ it.name }}</td>
-                <td class="text-end">{{ it.qty }} {{ it.unit }}</td>
-                <td class="text-end">{{ it.subtotal }} ₽</td>
-              </tr>
-            {% endfor %}
-          </table>
-        </details>
-      {% endif %}
-    {% endfor %}
-  </aside>
+      <form method="post" action="{% url 'set_variants' quote.id %}"
+      class="w-full" style="margin-top:1rem">
+        {% csrf_token %}
+        {% for code, label in sign_types.items %}
+          {% with v=quote.variants|get_item:code %}
+            <div class="flex items-center mb-2">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" name="use_{{ code }}"
+                       class="variant-checkbox"
+                       {% if not v or v.use_in_offer %}checked{% endif %}>
+                <span class="whitespace-nowrap">{{ label }}</span>
+              </label>
+              <div class="flex items-center gap-1 text-sm text-gray-500" style="margin-left:auto">
+                <span>Наценка:</span>
+                <input type="number" name="margin_{{ code }}" min="0" max="300"
+                       value="{{ v.margin_pct|default_if_none:'0' }}"
+                       style="width: 35px; font-size: 10px; padding: 1px 3px; height: 20px;"> %
+              </div>
+            </div>
+          {% endwith %}
+        {% endfor %}
+        <button class="btn" type="submit">💾 Сохранить варианты</button>
+      </form>
+    </aside>
+
+    <script>
+    function setAllVariants(value) {
+      document.querySelectorAll('.variant-checkbox').forEach(cb => cb.checked = value);
+    }
+    </script>
+
+
+<!-- 3. Правая колонка -------------------------------------------------->
+<aside class="basis-1/2 pe-6 overflow-y-auto max-h-85">
+  <h3>Предпросмотр КП</h3>
+
+  {% for v in quote.variants.all %}
+    {% if v.use_in_offer %}
+      <details class="mb-4 variant-box">
+        <summary class="variant-summary">
+          {{ sign_types|get_item:v.type_code }}
+          <span class="variant-total">{{ v.subtotal }} ₸</span>
+        </summary>
+
+        <table class="variant-table">
+          {% for it in v.items.all %}
+            <tr>
+              <td class="pr-2 py-1">{{ it.name }}</td>
+              <td class="text-end pr-2 py-1 whitespace-nowrap">{{ it.qty }} {{ it.unit }}</td>
+              <td class="text-end py-1 whitespace-nowrap">{{ it.subtotal }} ₸</td>
+            </tr>
+          {% endfor %}
+          <tr class="font-bold">
+            <td colspan="2" class="text-end pt-2">Итого:</td>
+            <td class="text-end pt-2">{{ v.subtotal }} ₸</td>
+          </tr>
+        </table>
+      </details>
+    {% endif %}
+  {% endfor %}
+<p>
+  <a href="{% url 'quote_pdf' quote.id %}" class="btn" target="_blank">📄 Скачать PDF</a>
+</p>
+</aside>
 
 </div>
 
@@ -176,6 +226,43 @@
         document.querySelector('input[value="алюк"]').checked ? '' : 'none';
     });
   });
+</script>
+
+<script>
+  // Добавление новых блоков
+  document.getElementById("add-block").addEventListener("click", () => {
+    const template = document.getElementById("empty-form-template").innerHTML;
+    const tbody = document.querySelector("#blocks-table tbody");
+    const totalForms = document.querySelector("#id_blocks-TOTAL_FORMS");
+    const newIndex = parseInt(totalForms.value);
+
+    const newRowHtml = template.replace(/__prefix__/g, newIndex);
+    const newRow = document.createElement("tr");
+    newRow.innerHTML = newRowHtml;
+
+    newRow.querySelector(".btn-delete").addEventListener("click", () => {
+      newRow.remove();
+    });
+
+    tbody.appendChild(newRow);
+    totalForms.value = newIndex + 1;
+  });
+
+// Удаление существующих блоков
+document.querySelectorAll("#blocks-table .btn-delete").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const row = btn.closest("tr");
+    const deleteBox = row.querySelector("input[name$='-DELETE']");
+
+    if (deleteBox) {          // это СУЩЕСТВУЮЩИЙ блок
+      deleteBox.checked = true;   // ← ставим галочку!
+      row.style.display = "none"; // прячем строку
+    } else {                  // это НОВЫЙ (ещё без pk) – просто убираем
+      row.remove();
+      // при желании уменьшить TOTAL_FORMS – допиши счётчик
+    }
+  });
+});
 </script>
 </body>
 </html>

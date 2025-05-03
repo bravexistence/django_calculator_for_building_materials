@@ -4,32 +4,88 @@
 <head>
   <title>Дашборд квот</title>
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <style>
+    li.flex-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .btn-delete {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      color: red;
+    }
+    .pagination {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      align-items: center;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
 
-    <h2>Клиенты</h2>
+    <h2>Список КП</h2>
 
     <form method="get" style="margin-bottom: 1rem;">
       <input type="text" name="q" placeholder="Поиск клиента..." value="{{ request.GET.q }}">
       <button type="submit">Найти</button>
     </form>
 
+    <p>
+      <button type="button" onclick="createQuote()" class="btn">➕ Новое КП</button>
+    </p>
+
     {% if quotes %}
       <ul>
         {% for quote in quotes %}
-          <li>
+          <li class="flex-item">
             <a href="{% url 'quote_detail' quote_id=quote.id %}">
-                {{ quote.client_name }} — {{ quote.created_at|date:"Y-m-d H:i" }} — {{ quote.materials|join:", " }}
+              {{ quote.client_name }} — {{ quote.created_at|date:"Y-m-d H:i" }} — {{ quote.materials|join:", " }}
             </a>
+            <form method="post" action="{% url 'quote_delete' quote.id %}" style="margin: 0;">
+              {% csrf_token %}
+              <button type="submit" class="btn-delete" title="Удалить"
+                onclick="return confirm('Удалить КП для {{ quote.client_name }}?')">🗑</button>
+            </form>
           </li>
         {% endfor %}
       </ul>
+
+      {% if quotes.has_other_pages %}
+        <div class="pagination">
+          {% if quotes.has_previous %}
+            <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ quotes.previous_page_number }}">← Назад</a>
+          {% endif %}
+
+          <span>Страница {{ quotes.number }} из {{ quotes.paginator.num_pages }}</span>
+
+          {% if quotes.has_next %}
+            <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ quotes.next_page_number }}">Вперёд →</a>
+          {% endif %}
+        </div>
+      {% endif %}
+
     {% else %}
       <p>Нет подходящих расчётов</p>
     {% endif %}
 
     <p style="margin-top: 2rem;"><a href="{% url 'logout' %}">Выйти</a></p>
   </div>
+
+<script>
+  function createQuote() {
+    const clientName = prompt("Введите имя клиента для нового КП:");
+    if (!clientName || clientName.trim() === "") return;
+    const encodedName = encodeURIComponent(clientName.trim());
+    window.location.href = "{% url 'quote_create' %}?client=" + encodedName;
+  }
+</script>
+
 </body>
 </html>

@@ -19,7 +19,8 @@ from django.urls import path, include
 from parser_and_calculator.views import (
     login_view, logout_view,
     dashboard_view, quote_detail_view,
-    set_variants,)
+    set_variants, quote_create_view, quote_delete_view,
+    quote_pdf_view)
 
 admin.site.site_header = "Калькулятор и расчет материалов"
 admin.site.site_title = "Django"
@@ -32,6 +33,9 @@ urlpatterns = [
     path("logout/", logout_view, name="logout"),
     path("dashboard/", dashboard_view, name="dashboard"),
     path("dashboard/quote/<int:quote_id>/", quote_detail_view, name="quote_detail"),
-    path("quote/<int:quote_id>/variants/", set_variants, name="set_variants")
-]
+    path("quote/<int:quote_id>/variants/", set_variants, name="set_variants"),
+    path("quote/create/", quote_create_view, name="quote_create"),
+    path("quote/<int:quote_id>/delete/", quote_delete_view, name="quote_delete"),
+    path("quote/<int:quote_id>/pdf/", quote_pdf_view, name="quote_pdf"),
 
+]

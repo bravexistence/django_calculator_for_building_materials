@@ -21,6 +21,7 @@ dependencies = [
   "django-redis (>=5.4.0,<6.0.0)",
   "django-grappelli (>=4.0.1,<5.0.0)",
   "django-multiselectfield (>=0.1.13,<0.2.0)",
+  "weasyprint (>=65.1,<66.0)",
 ]
 
 [project.optional-dependencies]

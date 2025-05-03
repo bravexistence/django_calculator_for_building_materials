@@ -2,6 +2,7 @@ from django.db import models
 import math
 from multiselectfield import MultiSelectField
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 
 class Product(models.Model):
     name = models.CharField(max_length=255)
@@ -10,14 +11,21 @@ class Product(models.Model):
     add_margin = models.BooleanField(default=False, verbose_name="20%")
     final_price = models.FloatField(null=True, blank=True, editable=False, verbose_name="Итоговая цена")
 
-    def save(self, *args, **kwargs):
+    def clean(self):
         if self.pk:
             orig = Product.objects.get(pk=self.pk)
             if self.name != orig.name:
-                raise ValueError("Редактирование 'name' запрещено!")
+                raise ValidationError({"name": "Редактирование названия запрещено. Создайте новый продукт."})
 
+    def save(self, *args, **kwargs):
+        self.full_clean()  # вызывает clean()
         if self.price is not None:
-            self.final_price = round(self.price * 1.2, 2) if self.add_margin else self.price
+            price = self.price
+            if self.add_margin:
+                price *= 1.2
+            if self.name.lower().strip() == "провода":
+                price *= 1.3334
+            self.final_price = round(price, 2)
         else:
             self.final_price = None
 
@@ -74,6 +82,12 @@ class Quote(models.Model):
         return f"КП для {self.client_name} от {self.created_at:%Y-%m-%d}"
 
     def save(self, *args, **kwargs):
+        if "пвх" not in self.materials:
+            self.width_pvh = None
+            self.height_pvh = None
+        if "алюк" not in self.materials:
+            self.width_alyuk = None
+            self.height_alyuk = None
         self.area_pvh = round((self.width_pvh or 0) * (self.height_pvh or 0), 2) if "пвх" in self.materials else None
         self.area_alyuk = round((self.width_alyuk or 0) * (self.height_alyuk or 0),
                                 2) if "алюк" in self.materials else None
@@ -203,11 +217,11 @@ class SignBlock(models.Model):
         ("130x130", "130×130 см"),
         ("140x140", "140×140 см"),
         ("150x150", "150×150 см"),
-        ("150x150", "160×160 см"),
-        ("150x150", "170×170 см"),
-        ("150x150", "180×180 см"),
-        ("150x150", "190×190 см"),
-        ("150x150", "200×200 см"),
+        ("160x160", "160×160 см"),
+        ("170x170", "170×170 см"),
+        ("180x180", "180×180 см"),
+        ("190x190", "190×190 см"),
+        ("200x200", "200×200 см"),
     ]
 
     quote = models.ForeignKey(Quote, on_delete=models.CASCADE, related_name="blocks")
@@ -243,6 +257,7 @@ class SignBlock(models.Model):
 
 
 SIGN_TYPES = [
+    # База
     ("pseudo_pvc", "Псевдообъем ПВХ 8мм"),
     ("pseudo_pvc_acrylic", "Псевдообъем 8мм + акрил 3мм"),
     ("pseudo_15_30mm", "Псевдообъем 15-30мм крашенный"),
@@ -253,17 +268,56 @@ SIGN_TYPES = [
     ("backlight_contour", "Контражур подсветка"),
     ("steel_letters", "Буквы из нержавейки"),
     ("steel_letters_light", "Буквы из нержавейки световые"),
+
+    # Облачко ПВХ
+    ("pvc_cloud_w_light_face", "Облачко + Буквы световые"),
+    ("pvc_cloud_w_3d_letters", "Облачко ПВХ + Буквы 3D"),
+
+    # ПВХ Подложка
+    ("pvc_base_w_light_face", "Подложка ПВХ + Буквы световые"),
+    ("pvc_base_w_3d_letters", "Подложка ПВХ + Буквы 3D"),
+    ("pvc_base_w_backlight_contour", "Подложка ПВХ + Буквы контражур"),
+    ("pvc_base_w_steel_letters", "Подложка ПВХ + Буквы нержавейка"),
+    ("pvc_base_w_steel_letters_light", "Подложка ПВХ + Буквы + Контражур"),
+
+    # Алюкобонд подложка
+    ("alucobond_w_light_face", "Подложка алюкобонд + Буквы световые"),
+    ("alucobond_w_3d_letters", "Подложка алюкобонд + Буквы 3D"),
+    ("alucobond_w_backlight_contour", "Подложка алюкобонд + Буквы контражур"),
+    ("alucobond_w_steel_letters", "Подложка алюкобонд + Буквы нержавейка"),
+    ("alucobond_w_steel_letters_light", "Подложка алюкобонд + Буквы + Контражур"),
+
+    # Металлорамка
+    ("metal_frame_w_light_face", "Металлорамка + Буквы световые"),
+    ("metal_frame_w_3d_letters", "Металлорамка + Буквы 3D"),
+    ("metal_frame_w_backlight_contour", "Металлорамка + Буквы контражур"),
+    ("metal_frame_w_steel_letters", "Металлорамка + Буквы нержавейка"),
+    ("metal_frame_w_steel_letters_light", "Металлорамка + Буквы + Контражур"),
+
+    # Лайтбоксы
+    ("banner_lightbox", "Баннерный лайтбокс"),
+    ("acrylic_lightbox", "Акрил Лайтбокс"),
+    ("acrylic_lightbox_3mm", "Акрил Лайтбокс + Инкрустация 3мм."),
+    ("acrylic_lightbox_8mm", "Акрил Лайтбокс + Инкрустация 8мм."),
+    ("acrylic_lightbox_8mm_3mm", "Акрил Лайтбокс + Инкрустация 8мм.+3мм."),
+    ("alucobond_lightbox_3mm", "Алюкобонд + Инкрустация 3мм. акрил"),
+    ("alucobond_lightbox_8mm", "Алюкобонд + Инкрустация 8мм. акрил"),
+    ("alucobond_lightbox_8mm_3mm", "Алюкобонд + Инкрустация 8мм.+3мм. акрил"),
 ]
 
 class Variant(models.Model):
     quote = models.ForeignKey(Quote, related_name="variants", on_delete=models.CASCADE)
-    type_code = models.CharField(max_length=30, choices=SIGN_TYPES)
+    type_code = models.CharField(max_length=100, choices=SIGN_TYPES)
     use_in_offer = models.BooleanField(default=True)
     margin_pct = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("quote", "type_code")
+
+    @property
+    def subtotal(self):
+        return sum(item.subtotal for item in self.items.all())
 
 class VariantItem(models.Model):
     variant = models.ForeignKey(Variant, related_name="items", on_delete=models.CASCADE)
@@ -275,8 +329,8 @@ class VariantItem(models.Model):
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
 
     def save(self, *a, **kw):
-        self.unit_price = self.unit_price or (self.product.final_price if self.product else 0)
-        self.subtotal   = round(self.qty * self.unit_price, 2)
+        if self.unit_price is None and self.product:
+            self.unit_price = self.product.final_price
+        self.subtotal = round(self.qty * self.unit_price, 2)
         super().save(*a, **kw)
-
 
